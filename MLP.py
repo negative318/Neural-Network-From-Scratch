@@ -1,10 +1,7 @@
+
 import numpy as np
 import matplotlib.pyplot as plt
 import keras
-
-
-
-N = 3
 
 from keras.datasets import mnist
 (x_train,y_train),(x_test,y_test) = mnist.load_data()
@@ -12,134 +9,157 @@ from keras.datasets import mnist
 print(x_train.shape,y_train.shape)
 print(x_test.shape,y_test.shape)
 
-# for i in range(10):
-#   plt.imshow(x_train[y_train == i][0], cmap ='gray')
-#   plt.title("label: {}".format(i), fontsize=16)
-#   plt.show()
-
 x_train = x_train /255.0
 x_test = x_test /255.0
+x_validation = x_train[:6000]
+y_validation = y_train[:6000]
+x_train = x_train[6000:]
+y_train = y_train[6000:]
 
-print(y_test)
-print(y_train)
-print(y_test.shape)
-print(y_train.shape)
-
+x_validation = x_validation.reshape(x_validation.shape[0],-1).T
 x_train = x_train.reshape(x_train.shape[0],-1).T
 x_test = x_test.reshape(x_test.shape[0],-1).T
-print(x_test.shape)
-print(x_train.shape)
-
-
-
-
-def init_parameter(N):
-  d = [10] * (N+1)
-  d[0] = 784
-  W = []
-  b = []
-  for i in range(N):
-    W.append(np.random.randn(d[i],d[i+1]))
-    b.append(np.random.randn(d[i+1],1))
-  return W,b
-
-def RELU(Z):
-  return np.maximum(0,Z)
-
-def softmax(Z):
-  Z_max = np.max(Z)
-  exp_Z = np.exp(Z - Z_max)
-  A = exp_Z / np.sum(exp_Z)
-  return A
-
 
 
 def one_hot(Y):
-  one_hot_Y = np.zeros((Y.size,Y.max()+1))
+  one_hot_Y = np.zeros((Y.size,10))
   one_hot_Y[np.arange(Y.size),Y] = 1
   one_hot_Y = one_hot_Y.T
   return one_hot_Y
 
-def prop(W,b,X,N):
-  Z = []
-  A = []
-  for i in range(N):
-    if i == 0 :
-      Z.append(W[0].T.dot(X) + b[0])
-      A.append(RELU(Z[-1]))
-      print(1,A)
-    elif i != N-1 :
-      Z.append(W[i].T.dot(A[i-1]) + b[i])
-      A.append(RELU(Z[-1]))
-      print(2,A)
-    else:
-      Z.append(W[i].T.dot(A[i-1])+ b[i])
-      print(3,Z)
-      A.append(softmax(Z[-1]))
-      print(3,A)
-  return Z,A
-def back_prop(Z,A,W,X,Y,N):
-  E = []
-  dW = []
-  db = []
-  one_hot_Y = one_hot(Y)
-  for i in range(N-1, -1, -1):
-    if (i == 0):
-      E.append(W[i+1].dot(E[-1]))
-      E[-1][Z[0] <= 0] = 0
-      dW.insert(0,X.dot(E[-1].T))
-    elif(i == N-1):
-      E.append(1/Y.size * (A[-1] - one_hot_Y))
-      dW.insert(0,A[i-1].dot(E[-1].T))
+y_train = one_hot(y_train)
+y_validation = one_hot(y_validation)
+y_test = one_hot(y_test)
+print(x_train.shape,y_train.shape)
+print(x_test.shape,y_test.shape)
+print(x_validation.shape,y_validation.shape)
 
-    else:
-      E.append(W[i+1].dot(E[-1]))
-      E[-1][Z[i] <= 0] = 0
-      dW.insert(0,A[i-1].dot(E[-1].T))
+class activationFunction:
+  def sigmoid(Z):
+      return 1 / (1 + np.exp(-Z))
 
-    db.insert(0,np.sum(E[-1],axis=1,keepdims=True))
+  def relu(Z):
+      return np.maximum(0, Z)
 
+  def tanh(Z):
+      return np.tanh(Z)
 
-  return dW,db
-def update_parameter(W,b,dW,db,eta):
+  def softmax(Z):
+    Z_max = np.max(Z, axis=0, keepdims=True)
+    exp_Z = np.exp(Z - Z_max)
+    A = exp_Z / np.sum(exp_Z, axis=0, keepdims=True)
+    return A
 
-  for i in range(len(W)):
-    W[i] = W[i] - eta * dW[i]
-    b[i] = b[i] - eta * db[i]
-  return W,b
-def cost(Y, Yhat):
-  return -np.sum(Y * np.log(Yhat))/Y.size
+class derivative:
+    def sigmoid(Z):
+      s = activationFunction.sigmoid(Z)
+      return s * (1 - s)
+
+    def relu(Z):
+      return (Z > 0).astype(float)
+
+    def tanh(Z):
+      return 1 - np.tanh(Z) ** 2
+
+class NeuralNetwork:
+  def __init__(self, layers_size, activations, l_rate):
+    self.layers_size = layers_size
+    self.activations = activations
+    self.l_rate = l_rate
+    self.num_layer = len(layers_size)
+    self.W = [0]
+    self.b = [0]
+    for i in range(1,self.num_layer,1):
+      self.W.append(np.random.randn(layers_size[i-1],layers_size[i]))
+      self.b.append(np.random.randn(layers_size[i],1))
 
 
-def get_predictions(Yhat):
-  return np.argmax(Yhat,0)
-def get_accuracy(predictions,Y):
-  return np.sum(predictions == Y) / Y.size
+  def forward(self, inputs):
+    self.A = [inputs]
+    self.Z = [0]
+    for i in range(1,self.num_layer,1):
+      z = np.dot(self.W[i].T, self.A[-1]) + self.b[i]
+      self.Z.append(z)
+      self.A.append(self.activeFuncion(z,self.activations[i]))
+    return self.A[-1]
+
+  def back_prop(self,output):
+    E = []
+    dW = []
+    db = []
+    for i in range(self.num_layer - 1, 0, -1):
+      if i == self.num_layer - 1:
+        E.append(1/output.size * (self.A[-1] - output))
+        dW.insert(0, np.dot(self.A[i-1], E[-1].T))
+        db.insert(0, np.sum(E[-1], axis=1, keepdims=True))
+      else:
+        E.append(np.dot(self.W[i+1], E[-1]))
+        E[-1][self.Z[i] <= 0] = 0
+        dW.insert(0, np.dot(self.A[i-1], E[-1].T))
+        db.insert(0, np.sum(E[-1], axis=1, keepdims=True))
+    dW.insert(0,0)
+    db.insert(0,0)
+    for i in range(self.num_layer):
+        self.W[i] -= dW[i] * self.l_rate
+        self.b[i] -= db[i] * self.l_rate
+
+  def activeFuncion(self,Z,active):
+    if active == "sigmoid":
+      return activationFunction.sigmoid(Z)
+    elif active == "relu":
+      return activationFunction.relu(Z)
+    elif active == "tanh":
+      return activationFunction.tanh(Z)
+    elif active == "softmax":
+      return activationFunction.softmax(Z)
 
 
-#N là số layer
-def train(N,W,b,X,Y,eta,epochs):
-  for i in range(epochs):
-    Z,A = prop(W,b,X,N)
-    dW,db = back_prop(Z,A,W,X,Y,N)
-    W,b = update_parameter(W,b,dW,db,eta)
-    #if i%100 == 0:
-    print(i, "cost: ", cost(Y,A[-1]), "Accuracy", get_accuracy(get_predictions(A[-1]),Y))
-  return W,b
-
-def test(N,W,b,X,Y):
-    one_hot_Y = one_hot(Y)
-    Z,A = prop(W,b,X,N)
-    print("cost: ", cost(one_hot_Y,A[-1]), get_accuracy(get_predictions(A[-1]),Y))
-    return get_predictions(A[-1])
+  def derivative(self,Z,active):
+    if active == "sigmoid":
+      return derivative.sigmoid(Z)
+    elif active == "relu":
+      return derivative.relu(Z)
+    elif active == "tanh":
+      return derivative.tanh(Z)
+    elif active == "softmax":
+      return 1/Z.size * (self.A[-1] - Z)
 
 
+  def cost(self,ouput,func):
+      if func == 'MAE':
+          return np.abs(self.A[-1] - ouput)
+      elif func == 'MSE':
+          return (self.A[-1] - ouput)**2/2
+      elif func == 'crossEntropy':
+          return -np.sum(ouput * np.log(self.A[-1]+1e-6))/ouput.shape[1]
+      elif func == 'binaryCrossEntropy':
+          return -np.sum(ouput * np.log(self.A[-1]+1e-6) + (1 - ouput) * np.log(1 - self.A[-1]+1e-6))
 
-W,b = init_parameter(N)
-W,b = train(N,W,b,x_train,y_train,0.01,5001)
+
+  def get_accuracy(self,predictions,output):
+    return np.sum(predictions == output) / output.size
 
 
-Yhat = test(N,W,b,x_test,y_test)
-print(Yhat)
-print(y_test)
-print("Accuracy: ",get_accuracy(Yhat,y_test)*100)
+  def train(self,input,output,val_in, val_out, epochs):
+    for i in range(epochs):
+      batch = 128
+      for j in range(0,input.shape[1],batch):
+        input_batch = input[:,j:j+batch]
+        output_batch = output[:,j:j+batch]
+        self.forward(input_batch)
+        self.back_prop(output_batch)
+        if i % 10 == 0 and j == 0:
+          print(i,"loss: ", self.cost(output_batch,"crossEntropy"),
+                "Accuracy train: ", self.get_accuracy(np.argmax(self.A[-1],0),np.argmax(output_batch,0)),
+                "Accuracy validation: ", self.test(val_in,val_out)
+              )
+
+
+  def test(self,val_in,val_out):
+    self.forward(val_in)
+    return (self.get_accuracy(np.argmax(self.A[-1],0),np.argmax(val_out,0)))
+
+nn = NeuralNetwork(layers_size=[28*28, 128, 64, 10],activations = ["","relu", "relu", "softmax"], l_rate=0.01)
+nn.train(x_train, y_train,x_validation, y_validation, epochs=1000)
+
+nn.test(x_test,y_test)
