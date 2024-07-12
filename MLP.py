@@ -1,42 +1,10 @@
-
 import numpy as np
 import matplotlib.pyplot as plt
 import keras
 
-from keras.datasets import mnist
-(x_train,y_train),(x_test,y_test) = mnist.load_data()
-
-print(x_train.shape,y_train.shape)
-print(x_test.shape,y_test.shape)
-
-x_train = x_train /255.0
-x_test = x_test /255.0
-x_validation = x_train[:6000]
-y_validation = y_train[:6000]
-x_train = x_train[6000:]
-y_train = y_train[6000:]
-
-x_validation = x_validation.reshape(x_validation.shape[0],-1).T
-x_train = x_train.reshape(x_train.shape[0],-1).T
-x_test = x_test.reshape(x_test.shape[0],-1).T
-
-
-def one_hot(Y):
-  one_hot_Y = np.zeros((Y.size,10))
-  one_hot_Y[np.arange(Y.size),Y] = 1
-  one_hot_Y = one_hot_Y.T
-  return one_hot_Y
-
-y_train = one_hot(y_train)
-y_validation = one_hot(y_validation)
-y_test = one_hot(y_test)
-print(x_train.shape,y_train.shape)
-print(x_test.shape,y_test.shape)
-print(x_validation.shape,y_validation.shape)
-
 class activationFunction:
   def sigmoid(Z):
-      return 1 / (1 + np.exp(-Z))
+      return np.where(Z >= 0, 1 / (1 + np.exp(-Z)), np.exp(Z) / (1 + np.exp(Z)))
 
   def relu(Z):
       return np.maximum(0, Z)
@@ -62,9 +30,10 @@ class derivative:
       return 1 - np.tanh(Z) ** 2
 
 class NeuralNetwork:
-  def __init__(self, layers_size, activations, l_rate):
+  def __init__(self, layers_size, activations,loss, l_rate):
     self.layers_size = layers_size
     self.activations = activations
+    self.loss = loss
     self.l_rate = l_rate
     self.num_layer = len(layers_size)
     self.W = [0]
@@ -140,16 +109,15 @@ class NeuralNetwork:
     return np.sum(predictions == output) / output.size
 
 
-  def train(self,input,output,val_in, val_out, epochs):
+  def train(self,input,output,val_in, val_out, epochs,batch_size =128):
     for i in range(epochs):
-      batch = 128
-      for j in range(0,input.shape[1],batch):
-        input_batch = input[:,j:j+batch]
-        output_batch = output[:,j:j+batch]
+      for j in range(0,input.shape[1],batch_size):
+        input_batch = input[:,j:j+batch_size]
+        output_batch = output[:,j:j+batch_size]
         self.forward(input_batch)
         self.back_prop(output_batch)
-        if i % 10 == 0 and j == 0:
-          print(i,"loss: ", self.cost(output_batch,"crossEntropy"),
+        if i % 100 == 0 and j == 0:
+          print(i,"loss: ", self.cost(output_batch,self.loss),
                 "Accuracy train: ", self.get_accuracy(np.argmax(self.A[-1],0),np.argmax(output_batch,0)),
                 "Accuracy validation: ", self.test(val_in,val_out)
               )
@@ -158,8 +126,3 @@ class NeuralNetwork:
   def test(self,val_in,val_out):
     self.forward(val_in)
     return (self.get_accuracy(np.argmax(self.A[-1],0),np.argmax(val_out,0)))
-
-nn = NeuralNetwork(layers_size=[28*28, 128, 64, 10],activations = ["","relu", "relu", "softmax"], l_rate=0.01)
-nn.train(x_train, y_train,x_validation, y_validation, epochs=1000)
-
-nn.test(x_test,y_test)
