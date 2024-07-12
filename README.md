@@ -19,7 +19,7 @@
     -	After training model, check model performance on the test set to evaluate generalization ability.
 
 # II. So sánh giữa các parameter khác nhau
-1.  So sánh hiệu suất khi thay đổi Unit của hidden layer
+1.  So sánh hiệu suất khi thay đổi Unit của hidden layer  
         Active: ReLU, learning rate: 0,01, batch_size: 128
     
     | Unit | train | test |
@@ -29,7 +29,7 @@
     | 256 | 94.53% | 93.18% |
     | 512 | 99.22% | 93.34% |
 
-2.  So sánh hiệu suất khi thay đổi số hidden layer
+2.  So sánh hiệu suất khi thay đổi số hidden layer  
         Active: ReLU, learning rate: 0.01, batch_size: 128
 
     | num_hidden | Unit | train | test |
@@ -39,7 +39,7 @@
     | 2 | 128,64 | 89.01% | 88.02% |
     | 3 | 256,128,64 | 74.21% | 66.78% |
 
-3.  So sánh hiệu suất khi thay đổi các hàm active
+3.  So sánh hiệu suất khi thay đổi các hàm active  
         learning rate: 0.01, batch_size: 128, unit: 128
     
     | Active | train | test |
@@ -48,7 +48,7 @@
     | sigmoid | 95.31% | 91.25% |
     | tanh | 88.28% | 86.12% |
 
-4.  So sánh hiệu suất khi thay đổi learning_rate
+4.  So sánh hiệu suất khi thay đổi learning_rate  
         Active: ReLU, batch_size: 128, unit: 128
     
     | learning_rate | train | test |
@@ -56,9 +56,9 @@
     | 0.001 | 92.97% | 87.14% |
     | 0.01 | 92.18% | 91.75% |
     | 0.1 | 99.22% | 94.96% |
-    | 1 |  |  |
+    | 1 | 1 | 95.73% |
 
-5.  So sánh hiệu suất khi thay đổi batch_size
+5.  So sánh hiệu suất khi thay đổi batch_size  
     Active: ReLU, learning rate: 0.01, unit: 128
 
     | batch_size | train | test |
@@ -68,7 +68,7 @@
     | 256 | 94.92% | 90.71% |
     | 512 | 92.97% | 89.89% |
 
-6.  So sánh hiệu suất khi thay đổi epochs
+6.  So sánh hiệu suất khi thay đổi epochs  
     Active:ReLU, learning rate: 0.01, unit: 128, batch_size: 128
 
     | epochs | train | test |
