@@ -52,18 +52,17 @@ class NeuralNetwork:
       self.A.append(self.activeFuncion(z,self.activations[i]))
     return self.A[-1]
 
-  def back_prop(self,output):
+  def backpropagation(self,output):
     E = []
     dW = []
     db = []
     for i in range(self.num_layer - 1, 0, -1):
       if i == self.num_layer - 1:
-        E.append(1/output.size * (self.A[-1] - output))
+        E.append(self.derivative(output,self.activations[i]))
         dW.insert(0, np.dot(self.A[i-1], E[-1].T))
         db.insert(0, np.sum(E[-1], axis=1, keepdims=True))
       else:
-        E.append(np.dot(self.W[i+1], E[-1]))
-        E[-1][self.Z[i] <= 0] = 0
+        E.append(self.derivative(np.dot(self.W[i+1], E[-1]),self.activations[i]))
         dW.insert(0, np.dot(self.A[i-1], E[-1].T))
         db.insert(0, np.sum(E[-1], axis=1, keepdims=True))
     dW.insert(0,0)
@@ -71,7 +70,8 @@ class NeuralNetwork:
     for i in range(self.num_layer):
         self.W[i] -= dW[i] * self.l_rate
         self.b[i] -= db[i] * self.l_rate
-
+    return E[-1]
+  
   def activeFuncion(self,Z,active):
     if active == "sigmoid":
       return activationFunction.sigmoid(Z)
@@ -115,7 +115,7 @@ class NeuralNetwork:
         input_batch = input[:,j:j+batch_size]
         output_batch = output[:,j:j+batch_size]
         self.forward(input_batch)
-        self.back_prop(output_batch)
+        self.backpropagation(output_batch)
         if i % 100 == 0 and j == 0:
           print(i,"loss: ", self.cost(output_batch,self.loss),
                 "Accuracy train: ", self.get_accuracy(np.argmax(self.A[-1],0),np.argmax(output_batch,0)),
