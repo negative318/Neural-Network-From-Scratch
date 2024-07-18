@@ -70,9 +70,9 @@ class NeuralNetwork:
     for i in range(self.num_layer):
         self.W[i] -= dW[i] * self.l_rate
         self.b[i] -= db[i] * self.l_rate
-    E.append(self.derivative(np.dot(self.W[i+1], E[-1]),self.activations[i]))
+    E.append(np.dot(self.W[1], E[-1]))
     return E[-1]
-  
+
   def activeFuncion(self,Z,active):
     if active == "sigmoid":
       return activationFunction.sigmoid(Z)
