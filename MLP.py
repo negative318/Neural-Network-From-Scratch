@@ -24,7 +24,7 @@ class derivative:
       return s * (1 - s)
 
     def relu(Z):
-      return (Z > 0).astype(float)
+      return np.maximum(0, Z)
 
     def tanh(Z):
       return 1 - np.tanh(Z) ** 2
@@ -58,11 +58,12 @@ class NeuralNetwork:
     db = []
     for i in range(self.num_layer - 1, 0, -1):
       if i == self.num_layer - 1:
-        E.append(self.derivative(output,self.activations[i]))
+        E.append(self.derivative(output,self.Z[i], self.activations[i]))
         dW.insert(0, np.dot(self.A[i-1], E[-1].T))
         db.insert(0, np.sum(E[-1], axis=1, keepdims=True))
       else:
-        E.append(self.derivative(np.dot(self.W[i+1], E[-1]),self.activations[i]))
+        E.append(np.dot(self.W[i+1], E[-1]))
+        E[-1][self.Z[i] <= 0] = 0        
         dW.insert(0, np.dot(self.A[i-1], E[-1].T))
         db.insert(0, np.sum(E[-1], axis=1, keepdims=True))
     dW.insert(0,0)
@@ -72,6 +73,7 @@ class NeuralNetwork:
         self.b[i] -= db[i] * self.l_rate
     E.append(np.dot(self.W[1], E[-1]))
     return E[-1]
+
 
   def activeFuncion(self,Z,active):
     if active == "sigmoid":
@@ -84,15 +86,15 @@ class NeuralNetwork:
       return activationFunction.softmax(Z)
 
 
-  def derivative(self,Z,active):
+  def derivative(self,E,Z,active):
     if active == "sigmoid":
-      return derivative.sigmoid(Z)
+      return derivative.sigmoid(E)
     elif active == "relu":
-      return derivative.relu(Z)
+      return E * derivative.relu(Z)
     elif active == "tanh":
-      return derivative.tanh(Z)
+      return derivative.tanh(E)
     elif active == "softmax":
-      return 1/Z.size * (self.A[-1] - Z)
+      return 1/E.size * (self.A[-1] - E)
 
 
   def cost(self,ouput,func):
@@ -127,3 +129,4 @@ class NeuralNetwork:
   def test(self,val_in,val_out):
     self.forward(val_in)
     return (self.get_accuracy(np.argmax(self.A[-1],0),np.argmax(val_out,0)))
+
