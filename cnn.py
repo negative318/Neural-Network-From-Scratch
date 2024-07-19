@@ -1,3 +1,4 @@
+
 from MLP import *
 
 from keras.datasets import mnist
@@ -42,8 +43,7 @@ class Convolutional:
     self.kernel = np.random.randn(*self.kernel_shape)
     self.bias = np.random.randn(*self.bias_shape)
 
-
-
+  # input (Di,Hi,Wi)
   # img (Hi, Wi)
   # kernel(Hk,Wk)
   def conv(self, image, kernel, status):
@@ -131,9 +131,9 @@ class MaxPoolingLayer:
       for i in range(0, out_height):
         for j in range(0, out_width):
           start_row = i * self.pool_size
-          end_row = min(start_row + self.pool_size-1, self.input.shape[1])
+          end_row = min(start_row + self.pool_size, self.input.shape[1])
           start_col = j * self.pool_size
-          end_col = min(start_col + self.pool_size-1, self.input.shape[2])
+          end_col = min(start_col + self.pool_size, self.input.shape[2])
           if start_row < end_row and start_col < end_col:
               self.output[d][i][j] = np.max(self.input[d,start_row:end_row, start_col:end_col])
     return self.output
@@ -173,7 +173,7 @@ pool1 = MaxPoolingLayer(2)
 CNN2 = Convolutional((8,13,13),3,16)
 pool2 = MaxPoolingLayer(2)
 flatten = Flattening()
-nn = NeuralNetwork(layers_size=[576,10],activations = ["", "softmax"], loss = "crossEntropy", l_rate = 1e-4) # 16*6*6 = 576
+nn = NeuralNetwork(layers_size=[576,10],activations = ["", "softmax"], loss = "crossEntropy", l_rate = 1e-6) # 16*6*6 = 576
 
 print(x_train.shape[0])
 for e in range(epochs):
@@ -193,7 +193,7 @@ for e in range(epochs):
       output_array = flatten.forward(output)
       Y_hat = nn.forward(output_array)
       if(i%10 == 0):
-        print("epochs: ",e, "accuracy:", nn.get_accuracy(np.argmax(Y_hat,0),np.argmax(y_batch,0)))
+        print("epochs: ", e, "interation:", i, "loss: ", nn.cost(y_batch,nn.loss), "accuracy:", nn.get_accuracy(np.argmax(Y_hat,0),np.argmax(y_batch,0)))
 
       # backprop
       gradY = nn.backpropagation(y_batch)
@@ -202,6 +202,6 @@ for e in range(epochs):
       for j in range(x_batch.shape[0]):
         back_prop.append(gradY[j])
         back_prop.append(pool2.backpropagation(back_prop[-1]))
-        back_prop.append(CNN2.backpropagation(back_prop[-1],1e-4))
+        back_prop.append(CNN2.backpropagation(back_prop[-1],1e-6))
         back_prop.append(pool1.backpropagation(back_prop[-1]))
-        back_prop.append(CNN1.backpropagation(back_prop[-1],1e-4))
+        back_prop.append(CNN1.backpropagation(back_prop[-1],1e-6))
