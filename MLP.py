@@ -62,16 +62,15 @@ class NeuralNetwork:
         dW.insert(0, np.dot(self.A[i-1], E[-1].T))
         db.insert(0, np.sum(E[-1], axis=1, keepdims=True))
       else:
-        E.append(np.dot(self.W[i+1], E[-1]))
-        E[-1][self.Z[i] <= 0] = 0        
+        E.append(self.derivative(np.dot(self.W[i+1], E[-1]),self.Z[i],self.activations[i]))
         dW.insert(0, np.dot(self.A[i-1], E[-1].T))
         db.insert(0, np.sum(E[-1], axis=1, keepdims=True))
     dW.insert(0,0)
     db.insert(0,0)
+    E.append(np.dot(self.W[1], E[-1]))
     for i in range(self.num_layer):
         self.W[i] -= dW[i] * self.l_rate
         self.b[i] -= db[i] * self.l_rate
-    E.append(np.dot(self.W[1], E[-1]))
     return E[-1]
 
 
