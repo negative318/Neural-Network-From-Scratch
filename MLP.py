@@ -24,7 +24,7 @@ class derivative:
       return s * (1 - s)
 
     def relu(Z):
-      return np.maximum(0, Z)
+      return (Z > 0).astype(float)
 
     def tanh(Z):
       return 1 - np.tanh(Z) ** 2
