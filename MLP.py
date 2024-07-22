@@ -1,3 +1,4 @@
+
 import numpy as np
 import matplotlib.pyplot as plt
 import keras
@@ -128,4 +129,3 @@ class NeuralNetwork:
   def test(self,val_in,val_out):
     self.forward(val_in)
     return (self.get_accuracy(np.argmax(self.A[-1],0),np.argmax(val_out,0)))
-
