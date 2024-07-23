@@ -24,46 +24,55 @@ class Convolutional:
 
     self.l_rate = l_rate
 
+  
+  # def conv(self, image, kernel, status):
+  #   image = np.array(image)
+  #   kernel = np.array(kernel)
+  #   img_shape = image.shape
+  #   kernel_shape = kernel.shape
+  #   if status == "forward":
+  #     out_put_height = img_shape[0]-kernel_shape[0]+1
+  #     out_put_width = img_shape[1]-kernel_shape[1]+1
+  #     output = np.zeros((out_put_height, out_put_width))
+  #     for i in range (out_put_height):
+  #       for j in range (out_put_width):
+  #         output[i][j] = np.sum(image[i:i+kernel_shape[0],j:j + kernel_shape[1]]*kernel)
+  #     return output
+
+  #   if status == "backprop":
+
+  #     out_put_height = img_shape[0]+kernel_shape[0]-1
+  #     out_put_width = img_shape[1]+kernel_shape[1]-1
+  #     output = np.zeros((out_put_height, out_put_width))
+
+  #     padded_image = np.pad(image, ((kernel_shape[0] - 1, kernel_shape[0] - 1), (kernel_shape[1] - 1, kernel_shape[1] - 1)), mode='constant')
+
+  #     for i in range (out_put_height):
+  #       for j in range (out_put_width):
+  #         output[i][j] = np.sum(padded_image[i:i+kernel_shape[0],j:j + kernel_shape[1]]*kernel)
+  #     return output
+    
+
+
   # input (Di,Hi,Wi)
   # img (Hi, Wi)
   # kernel(Hk,Wk)
-  def conv(self, image, kernel, status):
+  def conv(self, image, kernel, padding):
     image = np.array(image)
     kernel = np.array(kernel)
     img_shape = image.shape
     kernel_shape = kernel.shape
-    if status == "forward":
-      out_put_height = img_shape[0]-kernel_shape[0]+1
-      out_put_width = img_shape[1]-kernel_shape[1]+1
-      output = np.zeros((out_put_height, out_put_width))
-      for i in range (out_put_height):
-        for j in range (out_put_width):
-          output[i][j] = np.sum(image[i:i+kernel_shape[0],j:j + kernel_shape[1]]*kernel)
-      return output
+    padded_image = np.pad(image, ((padding, padding), (padding, padding)), mode='constant')
+    out_put_height = padded_image.shape[0] - kernel_shape[0] + 1
+    out_put_width = padded_image.shape[1] - kernel_shape[1] + 1
+    output = np.zeros((out_put_height, out_put_width))
+    for i in range (out_put_height):
+      for j in range (out_put_width):
+        output[i][j] = np.sum(padded_image[i:i+kernel_shape[0],j:j + kernel_shape[1]]*kernel)
+    return output
 
-    if status == "backprop":
 
-      out_put_height = img_shape[0]+kernel_shape[0]-1
-      out_put_width = img_shape[1]+kernel_shape[1]-1
-      output = np.zeros((out_put_height, out_put_width))
 
-      # input_height, input_width = image.shape
-      # input_height = input_height + (kernel_shape[0]-1)*2
-      # input_width = input_width + (kernel_shape[1]-1)*2
-      # input = np.zeros((input_height, input_width))
-      # for i in range (input_height):
-      #   for j in range (input_width):
-      #     if i < kernel_shape[0]-1 or j < kernel_shape[1]-1 or i > input_height-kernel_shape[0] or j > input_width-kernel_shape[1]:
-      #       input[i][j] = 0
-      #     else:
-      #       input[i][j] = image[i-kernel_shape[0]+1][j-kernel_shape[1]+1]
-
-      padded_image = np.pad(image, ((kernel_shape[0] - 1, kernel_shape[0] - 1), (kernel_shape[1] - 1, kernel_shape[1] - 1)), mode='constant')
-
-      for i in range (out_put_height):
-        for j in range (out_put_width):
-          output[i][j] = np.sum(padded_image[i:i+kernel_shape[0],j:j + kernel_shape[1]]*kernel)
-      return output
 
   # input (Di,Hi,Wi)
   # output (Do,Ho,Wo)
@@ -74,7 +83,7 @@ class Convolutional:
     self.output = np.zeros(self.output_shape)
     for j in range (self.output_shape[0]):
       for i in range (self.input_shape[0]):
-          self.output[j] += self.conv(self.input[i], self.kernel[j][i],"forward")
+          self.output[j] += self.conv(self.input[i], self.kernel[j][i], padding = 0)
       self.output[j] += self.bias[j]
     return self.output
 
@@ -96,8 +105,8 @@ class Convolutional:
     for i in range (self.output_shape[0]):
       for j in range(self.input_shape[0]):
         root_kernel[i][j] = np.rot90(self.kernel[i][j], 2)
-        grad_input[j] += self.conv(gradY[i], root_kernel[i][j],"backprop")
-        grad_kernel[i][j] = self.conv(self.input[j], gradY[i],"forward")
+        grad_input[j] += self.conv(gradY[i], root_kernel[i][j], padding = root_kernel[i][j].shape[0] - 1)
+        grad_kernel[i][j] = self.conv(self.input[j], gradY[i], padding = 0)
     self.kernel -= self.l_rate*grad_kernel
     self.bias -= self.l_rate*gradY
     return grad_input
@@ -173,10 +182,9 @@ class Model:
     self.CNN_layers = CNN_layers
     self.nn_layer = nn_layer
     self.flatten = Flattening()
-  def train(self, x_train,y_train,x_val,y_val, batch_size, epochs, l_rate):
+  def train(self, x_train,y_train,x_val,y_val, batch_size, epochs):
     self.batch_size = batch_size
     self.epochs = epochs
-    self.l_rate = l_rate
     print("x_train: ", x_train.shape)
     print("y_train: ", y_train.shape)
     print("x_val: ", x_val.shape)
@@ -205,10 +213,14 @@ class Model:
           back_prop.append(gradY[j])
           for layer in reversed(self.CNN_layers):
             back_prop.append(layer.backpropagation(back_prop[-1]))
-        if(i%10 == 0):
-          print("epochs: ", e, "interation:", i, "loss: ", self.nn_layer.cost(y_batch,self.nn_layer.loss),
-                "accuracy_train:", self.nn_layer.get_accuracy(np.argmax(Y_hat,0),np.argmax(y_batch,0)),
-                "accuracy_validation:", self.test(x_val,y_val))
+        # if(i%10 == 0):
+        #   print("epochs: ", e, "interation:", i, "loss: ", self.nn_layer.cost(y_batch,self.nn_layer.loss),
+        #         "accuracy_train:", self.nn_layer.get_accuracy(np.argmax(Y_hat,0),np.argmax(y_batch,0)),
+        #         "accuracy_validation:", self.test(x_val,y_val))
+      (loss_train, acuracy_train) = self.test(x_train, y_train)
+      (loss_val,accuracy_val) = self.test(x_val,y_val)
+      print("epochs: ", e, "loss: ", loss_train, "accuracy_train:", acuracy_train,
+            "loss_val", loss_val, "accuracy_validation:", accuracy_val)
 
 
   def test(self, x_test, y_test):
@@ -219,6 +231,9 @@ class Model:
             output[j] = layer.forward(output[j])
         output_array = self.flatten.forward(output)
         Y_hat = self.nn_layer.forward(output_array)
-        return(self.nn_layer.get_accuracy(np.argmax(Y_hat,0),np.argmax(y_test,0)))
+        loss = self.nn_layer.cost(y_test,self.nn_layer.loss)
+        accuracy = self.nn_layer.get_accuracy(np.argmax(Y_hat,0),np.argmax(y_test,0))
+        # return(self.nn_layer.get_accuracy(np.argmax(Y_hat,0),np.argmax(y_test,0)))
+        return (loss, accuracy)
 
 
