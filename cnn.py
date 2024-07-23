@@ -24,34 +24,6 @@ class Convolutional:
 
     self.l_rate = l_rate
 
-  
-  # def conv(self, image, kernel, status):
-  #   image = np.array(image)
-  #   kernel = np.array(kernel)
-  #   img_shape = image.shape
-  #   kernel_shape = kernel.shape
-  #   if status == "forward":
-  #     out_put_height = img_shape[0]-kernel_shape[0]+1
-  #     out_put_width = img_shape[1]-kernel_shape[1]+1
-  #     output = np.zeros((out_put_height, out_put_width))
-  #     for i in range (out_put_height):
-  #       for j in range (out_put_width):
-  #         output[i][j] = np.sum(image[i:i+kernel_shape[0],j:j + kernel_shape[1]]*kernel)
-  #     return output
-
-  #   if status == "backprop":
-
-  #     out_put_height = img_shape[0]+kernel_shape[0]-1
-  #     out_put_width = img_shape[1]+kernel_shape[1]-1
-  #     output = np.zeros((out_put_height, out_put_width))
-
-  #     padded_image = np.pad(image, ((kernel_shape[0] - 1, kernel_shape[0] - 1), (kernel_shape[1] - 1, kernel_shape[1] - 1)), mode='constant')
-
-  #     for i in range (out_put_height):
-  #       for j in range (out_put_width):
-  #         output[i][j] = np.sum(padded_image[i:i+kernel_shape[0],j:j + kernel_shape[1]]*kernel)
-  #     return output
-    
 
 
   # input (Di,Hi,Wi)
