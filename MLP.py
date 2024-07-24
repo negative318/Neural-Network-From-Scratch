@@ -1,34 +1,11 @@
 
+from activateFuncion import *
+
+
 import numpy as np
 import matplotlib.pyplot as plt
 import keras
 
-class activationFunction:
-  def sigmoid(Z):
-      return np.where(Z >= 0, 1 / (1 + np.exp(-Z)), np.exp(Z) / (1 + np.exp(Z)))
-
-  def relu(Z):
-      return np.maximum(0, Z)
-
-  def tanh(Z):
-      return np.tanh(Z)
-
-  def softmax(Z):
-    Z_max = np.max(Z, axis=0, keepdims=True)
-    exp_Z = np.exp(Z - Z_max)
-    A = exp_Z / np.sum(exp_Z, axis=0, keepdims=True)
-    return A
-
-class derivative:
-    def sigmoid(Z):
-      s = activationFunction.sigmoid(Z)
-      return s * (1 - s)
-
-    def relu(Z):
-      return (Z > 0).astype(float)
-
-    def tanh(Z):
-      return 1 - np.tanh(Z) ** 2
 
 class NeuralNetwork:
   def __init__(self, layers_size, activations,loss, l_rate):
@@ -77,22 +54,22 @@ class NeuralNetwork:
 
   def activeFuncion(self,Z,active):
     if active == "sigmoid":
-      return activationFunction.sigmoid(Z)
+      return sigmoid.forward(Z)
     elif active == "relu":
-      return activationFunction.relu(Z)
+      return ReLU.forward(Z)
     elif active == "tanh":
-      return activationFunction.tanh(Z)
+      return tanh.forward(Z)
     elif active == "softmax":
-      return activationFunction.softmax(Z)
+      return softmax.forward(Z)
 
 
   def derivative(self,E,Z,active):
     if active == "sigmoid":
-      return derivative.sigmoid(E)
+      return sigmoid.backpropagation(E)
     elif active == "relu":
-      return E * derivative.relu(Z)
+      return E * ReLU.backpropagation(Z)
     elif active == "tanh":
-      return derivative.tanh(E)
+      return tanh.backpropagation(E)
     elif active == "softmax":
       return 1/E.size * (self.A[-1] - E)
 
