@@ -44,7 +44,23 @@ class Convolutional:
     return output
 
 
+  
+  # def activeFuncion(self,Z,active):
+  #   if active == "sigmoid":
+  #     return activationFunction.sigmoid(Z)
+  #   elif active == "relu":
+  #     return activationFunction.relu(Z)
+  #   elif active == "tanh":
+  #     return activationFunction.tanh(Z)
 
+
+  # def derivative(self,E,Z,active):
+  #   if active == "sigmoid":
+  #     return derivative.sigmoid(E)
+  #   elif active == "relu":
+  #     return E * derivative.relu(Z)
+  #   elif active == "tanh":
+  #     return derivative.tanh(E)
 
   # input (Di,Hi,Wi)
   # output (Do,Ho,Wo)
@@ -57,6 +73,7 @@ class Convolutional:
       for i in range (self.input_shape[0]):
           self.output[j] += self.conv(self.input[i], self.kernel[j][i], padding = 0)
       self.output[j] += self.bias[j]
+    
     return self.output
 
 
@@ -83,20 +100,6 @@ class Convolutional:
     self.bias -= self.l_rate*gradY
     return grad_input
 
-array = np.arange(1, 76).reshape(1,3, 5, 5)
-root_kernel = np.zeros(array.shape)
-for i in range(array.shape[0]):
-  for j in range(array.shape[1]):
-     root_kernel[i][j] = np.rot90(array[i][j], 2)
-# print(root_kernel)
-
-array = np.arange(1, 26).reshape(1, 5, 5)
-# print(array)
-CNN = Convolutional((1,5,5),3,3,0.1)
-output = CNN.forward(array)
-# print(output)
-back = CNN.backpropagation(output)
-# print(back)
 
 class MaxPoolingLayer:
   def __init__(self, pool_size):
@@ -168,7 +171,7 @@ class Model:
         output = [0] * x_batch.shape[0]
 
 
-        # forward prop
+        # forward prop  
         for j in range(x_batch.shape[0]):
           output[j] = np.expand_dims(x_batch[j], axis=0)
           for layer in self.CNN_layers:
@@ -185,13 +188,9 @@ class Model:
           back_prop.append(gradY[j])
           for layer in reversed(self.CNN_layers):
             back_prop.append(layer.backpropagation(back_prop[-1]))
-        # if(i%10 == 0):
-        #   print("epochs: ", e, "interation:", i, "loss: ", self.nn_layer.cost(y_batch,self.nn_layer.loss),
-        #         "accuracy_train:", self.nn_layer.get_accuracy(np.argmax(Y_hat,0),np.argmax(y_batch,0)),
-        #         "accuracy_validation:", self.test(x_val,y_val))
       (loss_train, acuracy_train) = self.test(x_train, y_train)
       (loss_val,accuracy_val) = self.test(x_val,y_val)
-      print("epochs: ", e, "loss: ", loss_train, "accuracy_train:", acuracy_train,
+      print("epochs: ", e, "loss_train: ", loss_train, "accuracy_train:", acuracy_train,
             "loss_val", loss_val, "accuracy_validation:", accuracy_val)
 
 
@@ -205,7 +204,6 @@ class Model:
         Y_hat = self.nn_layer.forward(output_array)
         loss = self.nn_layer.cost(y_test,self.nn_layer.loss)
         accuracy = self.nn_layer.get_accuracy(np.argmax(Y_hat,0),np.argmax(y_test,0))
-        # return(self.nn_layer.get_accuracy(np.argmax(Y_hat,0),np.argmax(y_test,0)))
         return (loss, accuracy)
 
 
