@@ -29,7 +29,7 @@ class tanh:
 class softmax:
     def __init__(self):
         pass
-    def forward(self,input):
+    def forward(input):
         input_max = np.max(input, axis=0, keepdims=True)
         exp_input = np.exp(input - input_max)
         A = exp_input / np.sum(exp_input, axis=0, keepdims=True)
