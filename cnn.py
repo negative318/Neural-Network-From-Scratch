@@ -1,3 +1,4 @@
+from activateFuncion import *
 import numpy as np
 
 class Convolutional:
@@ -7,7 +8,7 @@ class Convolutional:
   # output (Do,Ho,Wo)
   # kernel (Do,Di,Hk,Wk)
   # bias (Do,Ho,Wo)
-  def __init__(self, input_shape, kernel_size, output_depth, l_rate):
+  def __init__(self, input_shape, kernel_size, output_depth, l_rate, activeFuncion):
     input_depth, input_height, input_width = input_shape
     output_height = (input_height - kernel_size) + 1
     output_width = (input_width - kernel_size) + 1
@@ -23,9 +24,17 @@ class Convolutional:
     self.bias = np.random.randn(*self.bias_shape)
 
     self.l_rate = l_rate
+    self.active_text = activeFuncion
+    self.activeFunction = None
+    if(activeFuncion == "relu"):
+      self.activeFuncion = ReLU()
+      self.relu_array = []
+    elif(activeFuncion == "sigmoid"):
+      self.activeFuncion = sigmoid()
+    elif(activeFuncion == "tanh"):
+      self.activeFuncion = tanh()
 
-
-
+    
   # input (Di,Hi,Wi)
   # img (Hi, Wi)
   # kernel(Hk,Wk)
@@ -45,23 +54,18 @@ class Convolutional:
 
 
   
-  # def activeFuncion(self,Z,active):
-  #   if active == "sigmoid":
-  #     return activationFunction.sigmoid(Z)
-  #   elif active == "relu":
-  #     return activationFunction.relu(Z)
-  #   elif active == "tanh":
-  #     return activationFunction.tanh(Z)
+  def active(self,input):
+      if(self.active_text == "relu"):
+        self.relu_array.append(input)
+      return self.activeFuncion.forward(input)
 
+  def derivative(self,output):
+    if(self.active_text =="relu"):
+      return output * self.activeFuncion.backpropagation(self.relu_array.pop(0))
+    return self.activeFuncion.backpropagation(output)
+  
 
-  # def derivative(self,E,Z,active):
-  #   if active == "sigmoid":
-  #     return derivative.sigmoid(E)
-  #   elif active == "relu":
-  #     return E * derivative.relu(Z)
-  #   elif active == "tanh":
-  #     return derivative.tanh(E)
-
+  
   # input (Di,Hi,Wi)
   # output (Do,Ho,Wo)
   # kernel (Do,Di,Hk,Wk)
@@ -73,7 +77,7 @@ class Convolutional:
       for i in range (self.input_shape[0]):
           self.output[j] += self.conv(self.input[i], self.kernel[j][i], padding = 0)
       self.output[j] += self.bias[j]
-    
+    self.output = self.active(self.output)
     return self.output
 
 
@@ -83,6 +87,7 @@ class Convolutional:
   # kernel (Do,Di,Hk,Wk)
   # bias (Do,Ho,Wo)
   def backpropagation(self, gradY):
+    gradY = self.derivative(gradY)
     grad_kernel = np.zeros(self.kernel_shape)
     grad_input = np.zeros(self.input_shape)
 

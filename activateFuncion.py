@@ -3,7 +3,7 @@ import numpy as np
 class ReLU:
     def __init__(self):
         pass
-    def forward(self):
+    def forward(self,input):
         return np.maximum(0, input)
     def backpropagation(self, input):
         return (input > 0).astype(float)
