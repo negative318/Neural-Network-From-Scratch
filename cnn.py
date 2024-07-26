@@ -8,7 +8,7 @@ class Convolutional:
   # output (Do,Ho,Wo)
   # kernel (Do,Di,Hk,Wk)
   # bias (Do,Ho,Wo)
-  def __init__(self, input_shape, kernel_size, output_depth, l_rate, activeFuncion):
+  def __init__(self, input_shape, kernel_size, output_depth, l_rate, activeFuncion = ""):
     input_depth, input_height, input_width = input_shape
     output_height = (input_height - kernel_size) + 1
     output_width = (input_width - kernel_size) + 1
@@ -55,11 +55,15 @@ class Convolutional:
 
   
   def active(self,input):
+      if self.active_text == "":
+        return input
       if(self.active_text == "relu"):
         self.relu_array.append(input)
       return self.activeFuncion.forward(input)
 
   def derivative(self,output):
+    if(self.active_text ==""):
+        return output
     if(self.active_text =="relu"):
       return output * self.activeFuncion.backpropagation(self.relu_array.pop(0))
     return self.activeFuncion.backpropagation(output)
