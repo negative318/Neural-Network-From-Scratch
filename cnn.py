@@ -198,9 +198,11 @@ class Model:
           for layer in reversed(self.CNN_layers):
             back_prop.append(layer.backpropagation(back_prop[-1]))
       (loss_train, acuracy_train) = self.test(x_train, y_train)
-      (loss_val,accuracy_val) = self.test(x_val,y_val)
-      print("epochs: ", e, "loss_train: ", loss_train, "accuracy_train:", acuracy_train,
-            "loss_val", loss_val, "accuracy_validation:", accuracy_val)
+      print("loss_train: ", loss_train, "accuracy_train:", acuracy_train)
+      # (loss_train, acuracy_train) = self.test(x_train, y_train)
+      # (loss_val,accuracy_val) = self.test(x_val,y_val)
+      # print("epochs: ", e, "loss_train: ", loss_train, "accuracy_train:", acuracy_train,
+      #       "loss_val", loss_val, "accuracy_validation:", accuracy_val)
 
 
   def test(self, x_test, y_test):
