@@ -24,6 +24,7 @@ class Tensor:
         result._backward = _backward
         return result    
 
+
     def __add__(self, other):
         result = Tensor(self.data + other.data,depends_on = [self,other], requires_grad=self.requires_grad or other.requires_grad, operator = "+")
         def _backward(grad):
@@ -225,7 +226,7 @@ class Tensor:
         A = exp_self / np.sum(exp_self, axis=0, keepdims=True)
     
         result = Tensor(A, depends_on=[self], requires_grad=self.requires_grad, operator="softmax")
-        #print(np.sum(result.data))
+
         def _backward(grad):
           if self.requires_grad:
             self.grad += (result.data - grad) / grad.size

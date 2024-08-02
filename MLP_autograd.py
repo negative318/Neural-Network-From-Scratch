@@ -68,6 +68,7 @@ class NeuralNetwork:
     for i in range(epochs):
       for j in range(0,input.shape[1],batch_size):
         input_batch = Tensor(input[:,j:j+batch_size], requires_grad=True)
+        
         output_batch = output[:,j:j+batch_size]
         self.forward(input_batch)
         self.backpropagation(output_batch)
