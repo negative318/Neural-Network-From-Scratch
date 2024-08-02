@@ -1,5 +1,6 @@
 
 import numpy as np
+from scipy.signal import correlate2d
 
 class Tensor:
     def __init__(self, data, depends_on = None, requires_grad=False, operator = ""):
@@ -10,15 +11,38 @@ class Tensor:
         self.operator = operator
         self._backward = None
 
+
+
+    @property
+    def T(self):
+        result = Tensor(self.data.T, requires_grad=self.requires_grad, depends_on=[self], operator="transpose")
+        
+        def _backward(grad):
+            if self.requires_grad:
+                self.backward(grad.T)
+        
+        result._backward = _backward
+        return result    
+
     def __add__(self, other):
         result = Tensor(self.data + other.data,depends_on = [self,other], requires_grad=self.requires_grad or other.requires_grad, operator = "+")
         def _backward(grad):
-            new = grad + 0
+            new_self_grad = grad + 0
+            new_other_grad = grad + 0
+            
             if self.requires_grad:
-                self.backward(new)
-            new = grad + 0
+                if self.data.shape != grad.shape:
+                    # Reduce the grad shape to match self.data.shape
+                    new_self_grad = np.sum(grad, axis=1, keepdims=True)  # Summing along the second axis
+                    new_self_grad = new_self_grad.reshape(self.data.shape)
+            self.backward(new_self_grad)
+            
             if other.requires_grad:
-                other.backward(new)
+                if other.data.shape != grad.shape:
+                    # Reduce the grad shape to match other.data.shape
+                    new_other_grad = np.sum(grad, axis=1, keepdims=True)  # Summing along the second axis
+                    new_other_grad = new_other_grad.reshape(other.data.shape)
+            other.backward(new_other_grad)
         result._backward = _backward
         return result
 
@@ -82,20 +106,26 @@ class Tensor:
                 self.backward(grad * np.ones_like(self.data))
         result._backward = _backward
         return result
+    
+    
+
     def dot(self, other):
-        result = Tensor(self.data.dot(other.data), depends_on=[self, other], requires_grad=self.requires_grad or other.requires_grad, operator="dot")
+        result = Tensor(np.dot(self.data,other.data), depends_on=[self, other], requires_grad=self.requires_grad or other.requires_grad, operator="dot")
 
         def _backward(grad):
+            
             if self.requires_grad:
-                self.backward(grad.dot(other.data.T))
+                self_grad = np.dot(grad, np.transpose(other.data))
+                # print("aaaaaaaaaaaaaaa", np.sum(self_grad))
+                
+                # print("aaaaaaaaaaaaaaa", self_grad)
+                self.backward(self_grad)
             if other.requires_grad:
-                other.backward(self.data.T.dot(grad))
+                other_grad = np.dot(np.transpose(self.data), grad)
+                # print("bbbbbbbbbbbbbb", np.sum(other_grad))
+                # print("bbbbbbbbbbbbbb", other_grad)
+                other.backward(other_grad)
 
-
-            # if self.requires_grad:
-            #     self.backward(grad.dot(other.data.T))
-            # if other.grad:
-            #     grad.backward(grad.dot(self.data))
 
         result._backward = _backward
         return result
@@ -159,70 +189,157 @@ class Tensor:
         result._backward = _backward
         return result
 
-    def softmax(self):
-        exp_data = np.exp(self.data - np.max(self.data))
-        result = Tensor(exp_data / np.sum(exp_data), depends_on=[self], requires_grad=self.requires_grad, operator="softmax")
+
+    def mse_loss(self, target):
+        diff = (self - target) ** Tensor(2)
+        loss = diff.mean()
+        def _backward(grad):
+            if diff.requires_grad:
+                diff.backward(grad / self.data.size)
+        loss._backward = _backward
+        return loss
 
 
+
+    def abs(self):
+        result = Tensor(np.abs(self.data), depends_on=[self], requires_grad=self.requires_grad, operator="abs")
+        def _backward(grad):
+            if self.requires_grad:
+                self.grad += grad * np.sign(self.data)
+        result._backward = _backward
         return result
+    def mae_loss(self, target):
+        diff = (self - target).abs()
+        loss = diff.mean()
+        def _backward(grad):
+            if diff.requires_grad:
+                diff.backward(grad / self.data.size)
+        loss._backward = _backward
+        return loss
+
+
+    def softmax(self):
+
+        self_max = np.max(self.data, axis=0, keepdims=True)
+        exp_self = np.exp(self.data - self_max)
+        A = exp_self / np.sum(exp_self, axis=0, keepdims=True)
+    
+        result = Tensor(A, depends_on=[self], requires_grad=self.requires_grad, operator="softmax")
+        #print(np.sum(result.data))
+        def _backward(grad):
+          if self.requires_grad:
+            self.grad += (result.data - grad) / grad.size
+            self.backward(self.grad)
+        result._backward = _backward
+        
+        return result
+
+    # self = input =  Tensor(num, in_chanel, height, width)
+    # other = kernel = Tensor(out_chanel, in_chanel, height, width)
+    # result = output = Tensor(num, out_chanel, height, width)
+    def conv(self, other,stride = 1, padding = 0):
+        output_shape = (
+            self.data.shape[0],  # Number of examples
+            other.data.shape[0],  # Number of output channels
+            self.data.shape[2] - other.data.shape[2] + 2 * padding + 1,  # Height
+            self.data.shape[3] - other.data.shape[3] + 2 * padding + 1  # Width
+        )
+        output = np.zeros(output_shape)
+
+        padded_data = np.pad(self.data, ((0, 0), (0, 0), (padding, padding), (padding, padding)), mode='constant')
+
+        for n in range(output.shape[0]):
+            for j in range(output.shape[1]):
+                for i in range(self.data.shape[1]):
+                    output[n][j] += correlate2d(padded_data[n][i], other.data[j][i], mode='valid')[::stride, ::stride]
+        result = Tensor(output,depends_on=[self,other], requires_grad = self.requires_grad or other.requires_grad, operator ="convolution")
+
+        def _backward(grad):
+          if self.requires_grad:
+            flipped_kernel = np.flip(other.data, axis=(2, 3))
+            grad_padded = np.pad(grad, ((0, 0), (0, 0), (other.data.shape[2] - 1, other.data.shape[2] - 1), (other.data.shape[3] - 1, other.data.shape[3] - 1)), mode='constant')
+            grad_input = np.zeros_like(self.data)
+            for n in range(output.shape[0]):
+                for j in range(self.data.shape[1]):
+                    for i in range(other.data.shape[0]):
+                        grad_input[n][j] += correlate2d(grad_padded[n][i],flipped_kernel[i][j],mode='valid')
+            self.backward(grad_input)
+          if other.requires_grad:
+            grad_kernel = np.zeros_like(other.data)
+            for n in range(self.data.shape[0]):
+                for i in range(other.data.shape[1]):
+                    for j in range(self.data.shape[1]):
+                        grad_kernel[i][j] += correlate2d(padded_data[n][i], grad[n][j], mode='valid')
+            other.backward(grad_kernel)                       # learning_rateeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+
+        result._backward = _backward
+        return result
+
+    def maxpooling(self, pool_size): # (num,chanel, hight,width)
+        num, chanel, h, w = self.data.shape
+        out_h = int(self.data.shape[2]/pool_size)
+        out_w = int(self.data.shape[3]/pool_size)
+        if(self.data.shape[2] % pool_size != 0):
+            out_h += 1
+        if(self.data.shape[3] % pool_size != 0):
+            out_w += 1
+        output = np.zeros((num,chanel,out_h,out_w))
+        for n in range(num):
+            for c in range(chanel):
+                for i in range(out_h):
+                    for j in range(out_w):
+                        h_start = i * pool_size
+                        h_end = min(h_start + pool_size, self.data.shape[2])
+                        w_start = j * pool_size
+                        w_end = min(w_start + pool_size, self.data.shape[3])
+                        if h_start < h_end and w_start < w_end:
+                            output[n, c, i, j] = np.max(self.data[n, c, h_start:h_end, w_start:w_end])
+        result = Tensor(output, requires_grad=self.requires_grad, depends_on=[self], operator="maxpool")
+        def _backward(grad):
+            
+            if self.requires_grad:
+                grad_input = np.zeros_like(self.data)
+                for n in range(num):
+                    for c in range(chanel):
+                        for i in range(out_h):
+                            for j in range(out_w):
+                                h_start = i * pool_size
+                                h_end = min(h_start + pool_size, self.data.shape[2])
+                                w_start = j * pool_size
+                                w_end = min(w_start + pool_size, self.data.shape[3])
+                                max_val = np.max(self.data[n, c, h_start:h_end, w_start:w_end])
+                                for h in range(h_start, h_end):
+                                    for w in range(w_start, w_end):
+                                        if self.data[n, c, h, w] == max_val:
+                                            grad_input[n, c, h, w] += grad[n, c, i, j]
+                                            
+                self.backward(grad_input)
+
+        result._backward = _backward
+        return result
+
+
+    def flatten(self):
+        input_shape = self.data.shape
+        output = self.data.reshape(input_shape[0],-1)
+        result = Tensor(output, requires_grad= self.requires_grad, depends_on=[self], operator="flatten")
+        def _backward(grad):
+            if self.requires_grad:
+                grad_input = grad.reshape(input_shape)
+                self.backward(grad_input)
+        result._backward =_backward
+        return result
+
+
+
 
     def backward(self,backward_grad = None):
 
         if backward_grad is None:
-            print("1111.1",self.data, self.grad, backward_grad)
             backward_grad = np.ones_like(self.data)
-            print("1111.2",self.data, self.grad, backward_grad)
-
-
-        print("3333.1",self.data, self.grad, backward_grad)
         self.grad += backward_grad
-        print("3333.2",self.data, self.grad, backward_grad)
-
         if self.depends_on is not None:
             self._backward(backward_grad)
 
     def __repr__(self):
         return f'Tensor({self.data}, requires_grad={self.requires_grad})'
-
-a = Tensor(2, requires_grad=True)
-b = Tensor(6, requires_grad=True)
-c = a + b * a
-
-d = a *b
-e = a - b
-
-c.backward()
-d.backward()
-e.backward()
-
-print("Gradient của a:")
-print(a.grad)
-print("Gradient của b:")
-print(b.grad)
-
-a = Tensor([[1, 2], [3, 4]], requires_grad=True)
-b = Tensor([[2, 0], [1, 2]], requires_grad=True)
-c = a + b
-d = c * a
-c.backward()
-
-print("Gradient của a:")
-print(a.grad)
-print("Gradient của b:")
-print(b.grad)
-
-y_true = Tensor([1.0, 2.0, 3.0, 4.0], requires_grad=False)
-y_pred = Tensor([1.1, 1.9, 3.2, 3.7], requires_grad=True)
-
-# Hàm loss: MSE (Mean Squared Error)
-loss = ((y_pred - y_true) ** Tensor(2)).mean()
-
-print("loss:", loss)
-# Tính gradient
-loss.backward()
-
-print("Gradient của y_pred:")
-print(y_pred.grad)
-
-print("Gradient của y_true:")
-print(y_true.grad)
