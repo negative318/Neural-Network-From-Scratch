@@ -56,7 +56,7 @@ class Convolutional:
 
   def update_parameter(self):
       self.kernel.data -= self.kernel.grad * self.l_rate
-      self.kernel.data = np.zeros_like(self.kernel.data)
+      self.kernel.grad = np.zeros_like(self.kernel.data)
       self.bias.data -= self.bias.grad * self.l_rate
       self.bias.grad = np.zeros_like(self.bias.data)
 
