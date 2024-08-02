@@ -12,7 +12,6 @@ class Convolutional:
     output_width = (input_width - kernel_size) + 1
     self.depth = output_depth
 
-
     self.input_shape = input_shape
     self.kernel_shape = (output_depth, input_depth, kernel_size, kernel_size)
     self.bias_shape = (output_depth, output_height, output_width)
