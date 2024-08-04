@@ -32,14 +32,19 @@ class Tensor:
             new_other_grad = grad + 0
             
             if self.requires_grad:
+                # print("aaaaaaa1", self.data.shape, grad.shape)
                 if self.data.shape != grad.shape:
-                    new_self_grad = np.sum(grad, axis=1, keepdims=True)
+                    # print("aaaaaaaaaaaaaa2", self.data.shape, grad.shape)
+                    new_self_grad = np.sum(grad, axis=0, keepdims=True)
                     new_self_grad = new_self_grad.reshape(self.data.shape)
             self.backward(new_self_grad)
             
             if other.requires_grad:
+                # print("bbbbbbbbbbb1", other.data.shape, grad.shape)
                 if other.data.shape != grad.shape:
-                    new_other_grad = np.sum(grad, axis=1, keepdims=True)
+                    # print("bbbbbbbbbbb2", other.data.shape, grad.shape)
+                    new_other_grad = np.sum(grad, axis=0, keepdims=True)
+                    # print(new_other_grad.shape)
                     new_other_grad = new_other_grad.reshape(other.data.shape)
             other.backward(new_other_grad)
         result._backward = _backward
@@ -211,13 +216,18 @@ class Tensor:
 
 
     def softmax(self):
-        # print(self.data.shape)
-        self_max = np.max(self.data, axis=0, keepdims=True)
-        # print(self.data - self_max)
-        exp_self = np.exp(self.data - self_max)
-        A = exp_self / np.sum(exp_self, axis=0, keepdims=True)
+        # # print(self.data.shape)
+        # self_max = np.max(self.data, axis=0, keepdims=True)
+        # # print(self.data - self_max)
+        # exp_self = np.exp(self.data - self_max)
+        # A = exp_self / np.sum(exp_self, axis=0, keepdims=True)
     
-        result = Tensor(A, depends_on=[self], requires_grad=self.requires_grad, operator="softmax")
+        # result = Tensor(A, depends_on=[self], requires_grad=self.requires_grad, operator="softmax")
+
+
+        exp_self = np.exp(self.data - np.max(self.data, axis=1, keepdims=True))  # Calculate softmax more stably
+        result = Tensor(exp_self / np.sum(exp_self, axis=1, keepdims=True), depends_on=[self], requires_grad=self.requires_grad, operator="softmax")
+        # print(result.data.shape)
 
         def _backward(grad):
           if self.requires_grad:
@@ -228,6 +238,11 @@ class Tensor:
         return result
 
     
+
+
+    #self = input = (num,chanel_in, h,w) = (64,3,32, 32)
+    #other = kernel = (o_chanel, i_chanel,h,w) = (4,3,3,3)
+    #output = (num, o_chanel, h,w) = (64,4,15,15)
     def conv(self, other,stride = 1, padding = 0):
         output_shape = (
             self.data.shape[0],
@@ -236,7 +251,7 @@ class Tensor:
             self.data.shape[3] - other.data.shape[3] + 2 * padding + 1
         )
         output = np.zeros(output_shape)
-
+        # print(self.data.shape, other.data.shape, output_shape)
         padded_data = np.pad(self.data, ((0, 0), (0, 0), (padding, padding), (padding, padding)), mode='constant')
 
         for n in range(output.shape[0]):
@@ -251,16 +266,16 @@ class Tensor:
             grad_padded = np.pad(grad, ((0, 0), (0, 0), (other.data.shape[2] - 1, other.data.shape[2] - 1), (other.data.shape[3] - 1, other.data.shape[3] - 1)), mode='constant')
             grad_input = np.zeros_like(self.data)
             for n in range(output.shape[0]):
-                for j in range(self.data.shape[1]):
-                    for i in range(other.data.shape[0]):
+                for i in range(output.shape[1]):
+                    for j in range(self.data.shape[1]):
                         grad_input[n][j] += correlate2d(grad_padded[n][i],flipped_kernel[i][j],mode='valid')
             self.backward(grad_input)
           if other.requires_grad:
             grad_kernel = np.zeros_like(other.data)
-            for n in range(self.data.shape[0]):
-                for i in range(other.data.shape[1]):
+            for n in range(output.shape[0]):
+                for i in range(output.shape[1]):
                     for j in range(self.data.shape[1]):
-                        grad_kernel[i][j] += correlate2d(padded_data[n][i], grad[n][j], mode='valid')
+                        grad_kernel[i][j] += correlate2d(padded_data[n][j], grad[n][i], mode='valid')
             other.backward(grad_kernel)        
         result._backward = _backward
         return result

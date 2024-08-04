@@ -39,13 +39,11 @@ class Convolutional:
 
   def forward(self, input):
     self.input = input
-    output = self.input.conv(self.kernel)
+    output = self.input.conv(self.kernel) + self.bias
     return self.active(output)
 
 
   def update_parameter(self):
-      # print("conv kernel grad:", self.kernel.grad)
-      # print("conv bias grad:", self.kernel.grad)
       self.kernel.data -= self.kernel.grad * self.l_rate
       self.kernel.grad = np.zeros_like(self.kernel.data)
       self.bias.data -= self.bias.grad * self.l_rate
@@ -67,7 +65,7 @@ class Flattening():
     pass
   def forward(self, input):
     output = input.flatten()
-    return output.T
+    return output
   def update_parameter(self):
      pass
 
@@ -86,8 +84,8 @@ class Model:
     for e in range(epochs):
       for i in range(0,x_train.shape[0] ,batch_size):
         x_batch = x_train[i:i+batch_size]
-        y_batch = y_train[:,i:i+batch_size]
-        
+        y_batch = y_train[i:i+batch_size,:]
+        # print(x_batch.shape, y_batch.shape)
         output = Tensor(x_batch, requires_grad= True)
         for layers in self.layers:
           output = layers.forward(output)
@@ -110,11 +108,11 @@ class Model:
       for layers in self.layers:
         output = layers.forward(output)
       
-      loss = -np.sum(y_test * np.log(output.data+1e-6)) / y_test.shape[1]
+      loss = -np.sum(y_test * np.log(output.data+1e-6)) / y_test.shape[0]
 
 
-      accuracy = self.get_accuracy(np.argmax(output.data,0),np.argmax(y_test,0))
+      accuracy = self.get_accuracy(np.argmax(output.data.T,0),np.argmax(y_test.T,0))
       return (loss, accuracy)
   
   def get_accuracy(self,predictions,output):
-    return np.sum(predictions == output) / output.shape[0]
+    return np.sum(predictions == output) / output.size
