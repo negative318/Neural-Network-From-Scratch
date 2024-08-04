@@ -16,7 +16,7 @@ class NeuralNetwork:
     self.num_layer = len(layers_size) - 1
     self.W = [Tensor(np.random.randn(layers_size[i], layers_size[i + 1]), requires_grad=True) for i in range(self.num_layer)]
     self.b = [Tensor(np.random.randn(layers_size[i + 1], 1), requires_grad=True) for i in range(self.num_layer)]
-    self.loss = Tensor(0)
+
 
 
   def forward(self, inputs):

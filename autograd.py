@@ -33,15 +33,13 @@ class Tensor:
             
             if self.requires_grad:
                 if self.data.shape != grad.shape:
-                    # Reduce the grad shape to match self.data.shape
-                    new_self_grad = np.sum(grad, axis=1, keepdims=True)  # Summing along the second axis
+                    new_self_grad = np.sum(grad, axis=1, keepdims=True)
                     new_self_grad = new_self_grad.reshape(self.data.shape)
             self.backward(new_self_grad)
             
             if other.requires_grad:
                 if other.data.shape != grad.shape:
-                    # Reduce the grad shape to match other.data.shape
-                    new_other_grad = np.sum(grad, axis=1, keepdims=True)  # Summing along the second axis
+                    new_other_grad = np.sum(grad, axis=1, keepdims=True)
                     new_other_grad = new_other_grad.reshape(other.data.shape)
             other.backward(new_other_grad)
         result._backward = _backward
@@ -117,17 +115,10 @@ class Tensor:
             
             if self.requires_grad:
                 self_grad = np.dot(grad, np.transpose(other.data))
-                # print("aaaaaaaaaaaaaaa", np.sum(self_grad))
-                
-                # print("aaaaaaaaaaaaaaa", self_grad)
                 self.backward(self_grad)
             if other.requires_grad:
                 other_grad = np.dot(np.transpose(self.data), grad)
-                # print("bbbbbbbbbbbbbb", np.sum(other_grad))
-                # print("bbbbbbbbbbbbbb", other_grad)
                 other.backward(other_grad)
-
-
         result._backward = _backward
         return result
 
@@ -220,8 +211,9 @@ class Tensor:
 
 
     def softmax(self):
-
+        # print(self.data.shape)
         self_max = np.max(self.data, axis=0, keepdims=True)
+        # print(self.data - self_max)
         exp_self = np.exp(self.data - self_max)
         A = exp_self / np.sum(exp_self, axis=0, keepdims=True)
     
@@ -235,15 +227,13 @@ class Tensor:
         
         return result
 
-    # self = input =  Tensor(num, in_chanel, height, width)
-    # other = kernel = Tensor(out_chanel, in_chanel, height, width)
-    # result = output = Tensor(num, out_chanel, height, width)
+    
     def conv(self, other,stride = 1, padding = 0):
         output_shape = (
-            self.data.shape[0],  # Number of examples
-            other.data.shape[0],  # Number of output channels
-            self.data.shape[2] - other.data.shape[2] + 2 * padding + 1,  # Height
-            self.data.shape[3] - other.data.shape[3] + 2 * padding + 1  # Width
+            self.data.shape[0],
+            other.data.shape[0], 
+            self.data.shape[2] - other.data.shape[2] + 2 * padding + 1, 
+            self.data.shape[3] - other.data.shape[3] + 2 * padding + 1
         )
         output = np.zeros(output_shape)
 
@@ -271,8 +261,7 @@ class Tensor:
                 for i in range(other.data.shape[1]):
                     for j in range(self.data.shape[1]):
                         grad_kernel[i][j] += correlate2d(padded_data[n][i], grad[n][j], mode='valid')
-            other.backward(grad_kernel)                       # learning_rateeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
-
+            other.backward(grad_kernel)        
         result._backward = _backward
         return result
 

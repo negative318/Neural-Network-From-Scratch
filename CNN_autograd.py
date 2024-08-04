@@ -24,16 +24,6 @@ class Convolutional:
     self.active_text = activeFuncion
 
 
-
-      
-    
-
-  def conv(self, image, kernel, padding):
-    output = image.conv(kernel,padding = padding)
-    return output
-
-
-  
   def active(self,input):
       if self.active_text == "":
         return input
@@ -54,6 +44,8 @@ class Convolutional:
 
 
   def update_parameter(self):
+      # print("conv kernel grad:", self.kernel.grad)
+      # print("conv bias grad:", self.kernel.grad)
       self.kernel.data -= self.kernel.grad * self.l_rate
       self.kernel.grad = np.zeros_like(self.kernel.data)
       self.bias.data -= self.bias.grad * self.l_rate
@@ -66,6 +58,8 @@ class MaxPoolingLayer:
   def forward(self, input): # input 4 chiều là 1 tensor
     output = input.maxpooling(self.pool_size)
     return output
+  def update_parameter(self):
+     pass
 
 #input 4 chiều là 1 tensor
 class Flattening():
@@ -74,5 +68,53 @@ class Flattening():
   def forward(self, input):
     output = input.flatten()
     return output.T
+  def update_parameter(self):
+     pass
 
 
+
+
+class Model:
+  def __init__(self, layers):
+    self.layers = layers
+  def train(self, x_train,y_train,x_val,y_val, batch_size, epochs):
+    print("x_train: ", x_train.data.shape)
+    print("y_train: ", y_train.shape)
+    print("x_val: ", x_val.data.shape)
+    print("y_val: ", y_val.shape)
+    
+    for e in range(epochs):
+      for i in range(0,x_train.shape[0] ,batch_size):
+        x_batch = x_train[i:i+batch_size]
+        y_batch = y_train[:,i:i+batch_size]
+        
+        output = Tensor(x_batch, requires_grad= True)
+        for layers in self.layers:
+          output = layers.forward(output)
+          
+
+
+        output.backward(y_batch)
+
+        for layers in self.layers:
+          layers.update_parameter()
+      # if(e % 5 == 0):
+      (loss_train, accuracy_train) = self.test(x_train, y_train)
+      (loss_val, accuracy_val) = self.test(x_val, y_val)
+      print("epochs: ", e, "loss_train: ", loss_train, "accuracy_train:", accuracy_train,
+            "loss_val", loss_val, "accuracy_validation:", accuracy_val)
+
+
+  def test(self, x_test, y_test):
+      output = Tensor(x_test, requires_grad= True)
+      for layers in self.layers:
+        output = layers.forward(output)
+      
+      loss = -np.sum(y_test * np.log(output.data+1e-6)) / y_test.shape[1]
+
+
+      accuracy = self.get_accuracy(np.argmax(output.data,0),np.argmax(y_test,0))
+      return (loss, accuracy)
+  
+  def get_accuracy(self,predictions,output):
+    return np.sum(predictions == output) / output.shape[0]
