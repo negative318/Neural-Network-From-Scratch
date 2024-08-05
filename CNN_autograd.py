@@ -110,7 +110,6 @@ class Model:
       
       loss = -np.sum(y_test * np.log(output.data+1e-6)) / y_test.shape[0]
 
-
       accuracy = self.get_accuracy(np.argmax(output.data.T,0),np.argmax(y_test.T,0))
       return (loss, accuracy)
   
