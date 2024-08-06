@@ -63,23 +63,24 @@ class NeuralNetwork:
     return np.sum(predictions == output) / output.size
 
 
-  def train(self,input,output,val_in, val_out, epochs,batch_size =128):
+  def train(self,x_train,y_train,x_val, y_val, epochs,batch_size =128):
     for i in range(epochs):
-      for j in range(0,input.shape[0],batch_size):
-        input_batch = Tensor(input[j:j+batch_size,:], requires_grad=True)
+      for j in range(0,x_train.shape[0],batch_size):
+        x_train_batch = Tensor(x_train[j:j+batch_size,:], requires_grad=True)
         
-        output_batch = output[j:j+batch_size,:]
-        self.forward(input_batch)
-        self.backpropagation(output_batch)
+        y_train_batch = y_train[j:j+batch_size,:]
+        self.forward(x_train_batch)
+        self.backpropagation(y_train_batch)
 
-        if i % 100 == 0 and j == 0:
-          
-          print(i, "loss: ", np.mean(self.cost(output_batch, self.lossFunction)),
-                "Accuracy train: ", self.get_accuracy(np.argmax(self.A[-1].data.T, 0), np.argmax(output_batch.T, 0)),
-                "Accuracy validation: ", self.test(val_in, val_out))
+      if i % 100 == 0:
+        (loss_train, accuracy_train) = self.test(x_train,y_train)
+        (loss_val, accuracy_val) = self.test(x_val,y_val)
+        print("epochs:", i, "loss train:", loss_train, "Accuracy train:", accuracy_train,
+              "loss val:", loss_val, "Accuracy validation: ", accuracy_val)
 
 
   def test(self, val_in, val_out):
       val_in = Tensor(val_in, requires_grad= True)
       self.forward(val_in)
-      return self.get_accuracy(np.argmax(self.A[-1].data.T, 0), np.argmax(val_out.T, 0))
+      loss = np.mean(self.cost(val_out, self.lossFunction))
+      return (loss, self.get_accuracy(np.argmax(self.A[-1].data.T, 0), np.argmax(val_out.T, 0)))

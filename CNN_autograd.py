@@ -99,7 +99,7 @@ class Model:
       # if(e % 5 == 0):
       (loss_train, accuracy_train) = self.test(x_train, y_train)
       (loss_val, accuracy_val) = self.test(x_val, y_val)
-      print("epochs: ", e, "loss_train: ", loss_train, "accuracy_train:", accuracy_train,
+      print("epochs: ", e, "loss_train: ",loss_train, "accuracy_train:", accuracy_train,
             "loss_val", loss_val, "accuracy_validation:", accuracy_val)
 
 
@@ -109,9 +109,9 @@ class Model:
         output = layers.forward(output)
       
       loss = -np.sum(y_test * np.log(output.data+1e-6)) / y_test.shape[0]
-
       accuracy = self.get_accuracy(np.argmax(output.data.T,0),np.argmax(y_test.T,0))
-      return (loss, accuracy)
+      return (np.mean(loss), accuracy)
   
   def get_accuracy(self,predictions,output):
     return np.sum(predictions == output) / output.size
+
