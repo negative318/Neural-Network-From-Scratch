@@ -17,8 +17,8 @@ class Convolutional:
     self.bias_shape = (output_depth, output_height, output_width)
     self.output_shape = (output_depth, output_height, output_width)
 
-    self.kernel = Tensor(np.random.randn(*self.kernel_shape), requires_grad= True)
-    self.bias = Tensor(np.random.randn(*self.bias_shape), requires_grad= True)
+    self.kernel = Tensor(np.ones((self.kernel_shape)), requires_grad= True)
+    self.bias = Tensor(np.ones((self.bias_shape)), requires_grad= True)
 
     self.l_rate = l_rate
     self.active_text = activeFuncion
@@ -44,10 +44,11 @@ class Convolutional:
 
 
   def update_parameter(self):
-      self.kernel.data -= self.kernel.grad * self.l_rate
-      self.kernel.grad = np.zeros_like(self.kernel.data)
-      self.bias.data -= self.bias.grad * self.l_rate
-      self.bias.grad = np.zeros_like(self.bias.data)
+    # print(self.bias.grad)
+    self.kernel.data -= self.kernel.grad * self.l_rate
+    self.kernel.grad = np.zeros_like(self.kernel.data)
+    self.bias.data -= self.bias.grad * self.l_rate
+    self.bias.grad = np.zeros_like(self.bias.data)
 
 class MaxPoolingLayer:
   def __init__(self, pool_size):

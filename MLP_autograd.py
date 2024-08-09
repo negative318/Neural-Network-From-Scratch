@@ -28,7 +28,6 @@ class NeuralNetwork:
 
   def backpropagation(self,output):
     self.A[-1].backward(output)
-    self.update_parameter()
 
   def update_parameter(self):
      for i in range(self.num_layer):
@@ -71,7 +70,7 @@ class NeuralNetwork:
         y_train_batch = y_train[j:j+batch_size,:]
         self.forward(x_train_batch)
         self.backpropagation(y_train_batch)
-
+        self.update_parameter()
       if i % 100 == 0:
         (loss_train, accuracy_train) = self.test(x_train,y_train)
         (loss_val, accuracy_val) = self.test(x_val,y_val)
