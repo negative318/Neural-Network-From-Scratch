@@ -31,19 +31,14 @@ class Tensor:
             new_other_grad = grad + 0
             
             if self.requires_grad:
-                # print("aaaaaaa1", self.data.shape, grad.shape)
                 if self.data.shape != grad.shape:
-                    # print("aaaaaaaaaaaaaa2", self.data.shape, grad.shape)
                     new_self_grad = np.sum(grad, axis=0, keepdims=True)
                     new_self_grad = new_self_grad.reshape(self.data.shape)
             self.backward(new_self_grad)
             
             if other.requires_grad:
-                # print("bbbbbbbbbbb1", other.data.shape, grad.shape)
                 if other.data.shape != grad.shape:
-                    # print("bbbbbbbbbbb2", other.data.shape, grad.shape)
                     new_other_grad = np.sum(grad, axis=0, keepdims=True)
-                    # print(new_other_grad.shape)
                     new_other_grad = new_other_grad.reshape(other.data.shape)
             other.backward(new_other_grad)
         result._backward = _backward

@@ -1,7 +1,7 @@
 from autograd import *
 from activateFuncion import *
-
-
+from sklearn.metrics import confusion_matrix
+import seaborn as sns
 import numpy as np
 import matplotlib.pyplot as plt
 import keras
@@ -72,14 +72,34 @@ class NeuralNetwork:
         self.backpropagation(y_train_batch)
         self.update_parameter()
       if i % 100 == 0:
-        (loss_train, accuracy_train) = self.test(x_train,y_train)
-        (loss_val, accuracy_val) = self.test(x_val,y_val)
+        (loss_train, accuracy_train) = self.check(x_train,y_train)
+        (loss_val, accuracy_val) = self.check(x_val,y_val)
         print("epochs:", i, "loss train:", loss_train, "Accuracy train:", accuracy_train,
               "loss val:", loss_val, "Accuracy validation: ", accuracy_val)
 
 
-  def test(self, val_in, val_out):
+  def check(self, val_in, val_out):
       val_in = Tensor(val_in, requires_grad= True)
       self.forward(val_in)
       loss = np.mean(self.cost(val_out, self.lossFunction))
       return (loss, self.get_accuracy(np.argmax(self.A[-1].data.T, 0), np.argmax(val_out.T, 0)))
+  
+  def test(self, x_test, y_test):
+    class_dirs = ['aloevera','banana','bilimbi','cantaloupe','cassava','coconut','corn','cucumber','curcuma','eggplant']
+    x_test = Tensor(x_test, requires_grad= True)
+    self.forward(x_test)
+    loss = np.mean(self.cost(y_test, self.lossFunction))
+    y_pred = np.argmax(self.A[-1].data.T, 0)
+    y_true = np.argmax(y_test.T, 0)
+
+    y_pred_labels = np.array([class_dirs[i] for i in y_pred])
+    y_true_labels = np.array([class_dirs[i] for i in y_true])
+
+    print("(",loss, self.get_accuracy(y_pred, y_true),")")
+    cm = confusion_matrix(y_true, y_pred)
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=class_dirs, yticklabels=class_dirs)
+    plt.xlabel('Predicted')
+    plt.ylabel('True')
+    plt.title('Test Set Confusion Matrix')
+    plt.show()
