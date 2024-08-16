@@ -4,10 +4,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
 import seaborn as sns
+
+
 class Convolutional:
-
-  
-
   def __init__(self, input_shape, kernel_size, output_depth, l_rate, activeFuncion = ""):
     input_depth, input_height, input_width = input_shape
     output_height = (input_height - kernel_size) + 1
@@ -25,7 +24,6 @@ class Convolutional:
     self.l_rate = l_rate
     self.active_text = activeFuncion
 
-
   def active(self,input):
       if self.active_text == "":
         return input
@@ -38,7 +36,6 @@ class Convolutional:
       else:
           raise ValueError(f"Unknown activation function: {self.active_text}")
 
-
   def forward(self, input):
     self.input = input
     output = self.input.conv(self.kernel) + self.bias
@@ -46,7 +43,8 @@ class Convolutional:
 
 
   def update_parameter(self):
-    # print(self.bias.grad)
+    # print("kernel",self.kernel.grad)
+    # print("bias", self.bias.grad)
     self.kernel.data -= self.kernel.grad * self.l_rate
     self.kernel.grad = np.zeros_like(self.kernel.data)
     self.bias.data -= self.bias.grad * self.l_rate
@@ -104,7 +102,7 @@ class Model:
             "loss_val", loss_val, "accuracy_validation:", accuracy_val)
 
 
-  def check(self, x_test, y_test):
+  def test(self, x_test, y_test):
       output = Tensor(x_test, requires_grad= True)
       for layers in self.layers:
         output = layers.forward(output)
@@ -115,26 +113,3 @@ class Model:
   
   def get_accuracy(self,predictions,output):
     return np.sum(predictions == output) / output.size
-
-
-  def test(self, x_test, y_test):
-      class_dirs = ['aloevera','banana','bilimbi','cantaloupe','cassava','coconut','corn','cucumber','curcuma','eggplant']
-      output = Tensor(x_test, requires_grad= True)
-      for layers in self.layers:
-        output = layers.forward(output)
-      loss = -np.sum(y_test * np.log(output.data+1e-6)) / y_test.shape[0]
-
-      y_pred = np.argmax(output.data.T, 0)
-      y_true = np.argmax(y_test.T, 0)
-      y_pred_labels = np.array([class_dirs[i] for i in y_pred])
-      y_true_labels = np.array([class_dirs[i] for i in y_true])
-      
-      
-      print("(",loss, self.get_accuracy(y_pred, y_true),")")
-      cm = confusion_matrix(y_true, y_pred)
-      plt.figure(figsize=(10, 8))
-      sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=class_dirs, yticklabels=class_dirs)
-      plt.xlabel('Predicted')
-      plt.ylabel('True')
-      plt.title('Test Set Confusion Matrix')
-      plt.show()

@@ -14,10 +14,12 @@ class Tensor:
 
     @property
     def T(self):
+        # print("forward T")
         result = Tensor(self.data.T, requires_grad=self.requires_grad, depends_on=[self])
         
         def _backward(grad):
             if self.requires_grad:
+                # print("self T", grad.T)
                 self.backward(grad.T)
         
         result._backward = _backward
@@ -25,6 +27,7 @@ class Tensor:
 
 
     def __add__(self, other):
+        # print("forward add")
         result = Tensor(self.data + other.data,depends_on = [self,other], requires_grad=self.requires_grad or other.requires_grad)
         def _backward(grad):
             new_self_grad = grad + 0
@@ -34,13 +37,15 @@ class Tensor:
                 if self.data.shape != grad.shape:
                     new_self_grad = np.sum(grad, axis=0, keepdims=True)
                     new_self_grad = new_self_grad.reshape(self.data.shape)
-            self.backward(new_self_grad)
+                # print("self add", new_self_grad)
+                self.backward(new_self_grad)
             
             if other.requires_grad:
                 if other.data.shape != grad.shape:
                     new_other_grad = np.sum(grad, axis=0, keepdims=True)
                     new_other_grad = new_other_grad.reshape(other.data.shape)
-            other.backward(new_other_grad)
+                # print("other add",new_other_grad)
+                other.backward(new_other_grad)
         result._backward = _backward
         return result
 
@@ -108,15 +113,18 @@ class Tensor:
     
 
     def dot(self, other):
+        # print("forward dot")
         result = Tensor(np.dot(self.data,other.data), depends_on=[self, other], requires_grad=self.requires_grad or other.requires_grad)
 
         def _backward(grad):
             
             if self.requires_grad:
                 self_grad = np.dot(grad, np.transpose(other.data))
+                # print("self dot",self_grad)
                 self.backward(self_grad)
             if other.requires_grad:
                 other_grad = np.dot(np.transpose(self.data), grad)
+                # print("other dot",other_grad)
                 other.backward(other_grad)
         result._backward = _backward
         return result
@@ -149,21 +157,44 @@ class Tensor:
                 self.backward(grad * np.exp(self.data))
         result._backward = _backward
         return result
+    # def relu(self):
+    #     # print("forward relu")
+    #     result = Tensor(np.maximum(self.data, 0), depends_on=[self], requires_grad=self.requires_grad)
 
-    def relu(self):
-        result = Tensor(np.maximum(self.data, 0), depends_on=[self], requires_grad=self.requires_grad)
+    #     def _backward(grad):
+    #         if self.requires_grad:
+    #           # print(self.data)
+    #           # print("self relu",grad * (self.data > 0))
+    #           self.backward(grad * (self.data > 0))
+
+
+    #     result._backward = _backward
+    #     return result
+    
+    
+    def relu(self, leaky_slope=0.01):
+        # print("forward leaky relu")
+        # Applying the leaky ReLU transformation
+        result = Tensor(np.where(self.data > 0, self.data, self.data * leaky_slope), 
+                        depends_on=[self], 
+                        requires_grad=self.requires_grad)
 
         def _backward(grad):
             if self.requires_grad:
-              self.backward(grad * (self.data > 0))
-
+                # print(self.data)
+                grad_input = grad * np.where(self.data > 0, 1, leaky_slope)
+                # print("self leaky relu", grad_input)
+                self.backward(grad_input)
+        
         result._backward = _backward
         return result
+
+
     def sigmoid(self):
         result = Tensor(1 / (1 + np.exp(-self.data)), depends_on=[self], requires_grad=self.requires_grad)
 
         def _backward(grad):
-            if self.requires_grad == True:
+            if self.requires_grad:
                   sigmoid_data = 1 / (1 + np.exp(-self.data))
                   self.backward(grad * sigmoid_data * (1 - sigmoid_data))
 
@@ -210,23 +241,19 @@ class Tensor:
 
 
     def softmax(self):
-        # # print(self.data.shape)
-        # self_max = np.max(self.data, axis=0, keepdims=True)
-        # # print(self.data - self_max)
-        # exp_self = np.exp(self.data - self_max)
-        # A = exp_self / np.sum(exp_self, axis=0, keepdims=True)
-    
-        # result = Tensor(A, depends_on=[self], requires_grad=self.requires_grad, operator="softmax")
-
-
+        # print("aaaaaaaa",self.data)
+        # print("bbbbbbbbb", np.max(self.data))
+        # print("ccccccccccccccc", self.data - np.max(self.data))
         exp_self = np.exp(self.data - np.max(self.data, axis=1, keepdims=True))  # Calculate softmax more stably
+        # print("exp self", exp_self)
         result = Tensor(exp_self / np.sum(exp_self, axis=1, keepdims=True), depends_on=[self], requires_grad=self.requires_grad)
-        # print(result.data.shape)
-
+        # print("forward softmax",result.data)
         def _backward(grad):
           if self.requires_grad:
-            self.grad += (result.data - grad) / grad.size
-            self.backward(self.grad)
+            # print(result.data,grad)
+            grad_input = (result.data - grad) / grad.size
+            # print("self softmax", grad_input)
+            self.backward(grad_input)
         result._backward = _backward
         
         return result
@@ -234,10 +261,9 @@ class Tensor:
     
 
 
-    #self = input = (num,chanel_in, h,w) = (64,3,32, 32)
-    #other = kernel = (o_chanel, i_chanel,h,w) = (4,3,3,3)
-    #output = (num, o_chanel, h,w) = (64,4,15,15)
+
     def conv(self, other,stride = 1, padding = 0):
+        # print("forward conv")
         output_shape = (
             self.data.shape[0],
             other.data.shape[0], 
@@ -245,7 +271,7 @@ class Tensor:
             self.data.shape[3] - other.data.shape[3] + 2 * padding + 1
         )
         output = np.zeros(output_shape)
-        # print(self.data.shape, other.data.shape, output_shape)
+        # # print(self.data.shape, other.data.shape, output_shape)
         padded_data = np.pad(self.data, ((0, 0), (0, 0), (padding, padding), (padding, padding)), mode='constant')
 
         for n in range(output.shape[0]):
@@ -263,6 +289,7 @@ class Tensor:
                 for i in range(output.shape[1]):
                     for j in range(self.data.shape[1]):
                         grad_input[n][j] += correlate2d(grad_padded[n][i],flipped_kernel[i][j],mode='valid')
+            # print("self conv", grad_input)
             self.backward(grad_input)
           if other.requires_grad:
             grad_kernel = np.zeros_like(other.data)
@@ -270,11 +297,13 @@ class Tensor:
                 for i in range(output.shape[1]):
                     for j in range(self.data.shape[1]):
                         grad_kernel[i][j] += correlate2d(padded_data[n][j], grad[n][i], mode='valid')
+            # print("other conv",grad_kernel)
             other.backward(grad_kernel)        
         result._backward = _backward
         return result
 
-    def maxpooling(self, pool_size): # (num,chanel, hight,width)
+    def maxpooling(self, pool_size):
+        # print("forward maxpooling")
         num, chanel, h, w = self.data.shape
         out_h = int(self.data.shape[2]/pool_size)
         out_w = int(self.data.shape[3]/pool_size)
@@ -297,6 +326,7 @@ class Tensor:
         def _backward(grad):
             
             if self.requires_grad:
+                
                 grad_input = np.zeros_like(self.data)
                 for n in range(num):
                     for c in range(chanel):
@@ -311,7 +341,7 @@ class Tensor:
                                     for w in range(w_start, w_end):
                                         if self.data[n, c, h, w] == max_val:
                                             grad_input[n, c, h, w] += grad[n, c, i, j]
-                                            
+                # print("self maxpooling",grad_input)                 
                 self.backward(grad_input)
 
         result._backward = _backward
@@ -319,12 +349,15 @@ class Tensor:
 
 
     def flatten(self):
+        # print("forward flatten")
+
         input_shape = self.data.shape
         output = self.data.reshape(input_shape[0],-1)
         result = Tensor(output, requires_grad= self.requires_grad, depends_on=[self])
         def _backward(grad):
             if self.requires_grad:
                 grad_input = grad.reshape(input_shape)
+                # print("self flatten", grad_input)
                 self.backward(grad_input)
         result._backward =_backward
         return result
